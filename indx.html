@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCM & Cash Register Portal</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .pulse-dot {
+      animation: pulseAnimation 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseAnimation {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(1.3); }
+    }
+    @media print {
+      body * { visibility: hidden !important; }
+      #invoicePrintArea, #invoicePrintArea * { visibility: visible !important; }
+      #invoicePrintArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 24px !important;
+        background: white !important;
+      }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full p-8 transition-all">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-600 text-white text-2xl shadow-lg shadow-emerald-500/30 mb-3">
+          <i class="fa-solid fa-boxes-packing"></i>
+        </div>
+        <h2 class="text-2xl font-extrabold text-slate-800">SCM Portal Login</h2>
+        <p class="text-xs text-slate-500 mt-1">Cash Register & Real-Time Shipment Tracking</p>
+        
+        <div class="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+          <span>Google Sheets Live Sync Connected</span>
+        </div>
+      </div>
+
+      <div id="loginAlert" class="hidden mb-4 p-3 rounded-xl text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+        <i class="fa-solid fa-triangle-exclamation mr-1"></i> Invalid username or password. Please verify credentials.
+      </div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4" autocomplete="off">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+              <i class="fa-regular fa-user"></i>
+            </span>
+            <input type="text" id="usernameInput" required placeholder="Enter username" autocomplete="off"
+              class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            <input type="password" id="passwordInput" required placeholder="Enter password" autocomplete="new-password"
+              class="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer" title="Toggle password visibility">
+              <i class="fa-regular fa-eye" id="passwordEyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-semibold text-sm rounded-xl shadow-md shadow-emerald-600/30 transition duration-150 flex items-center justify-center gap-2 mt-4 cursor-pointer">
+          <span>Sign In to Portal</span>
+          <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="mainApp" class="flex-1 flex flex-col hidden">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            <i class="fa-solid fa-cube"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-bold text-slate-800 text-base sm:text-lg">SCM & Financial Portal</h1>
+              <span id="roleBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Admin</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">Cash Ledger & Real-Time Shipment Tracking System (BDT ৳)</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="fetchLiveDataFromGoogleSheets(true)" id="syncStatusBtn" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-full border border-emerald-200 text-emerald-800 text-xs font-medium transition cursor-pointer" title="Click to refresh live data from Google Sheets">
+            <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+            <i id="syncSpinner" class="fa-solid fa-arrows-rotate text-[11px] hidden animate-spin"></i>
+            <span id="syncText" class="hidden sm:inline">Google Sheets Synced</span>
+          </button>
+
+          <button onclick="showToast('All shipment records and cash ledger entries are reconciled!')" class="w-9 h-9 text-slate-600 hover:text-emerald-600 hover:bg-slate-100 rounded-lg flex items-center justify-center transition relative cursor-pointer" title="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            <span class="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full"></span>
+          </button>
+
+          <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold" id="userAvatar">
+              AD
+            </div>
+            <div class="hidden sm:block text-left">
+              <div class="text-xs font-semibold text-slate-800" id="userNameLabel">Admin1</div>
+              <div class="text-[10px] text-slate-400" id="userRoleLabel">System Administrator</div>
+            </div>
+            <button onclick="handleLogout()" class="ml-1 p-2 text-slate-400 hover:text-red-600 transition cursor-pointer" title="Sign Out">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto gap-2 border-t border-slate-100 py-1.5 custom-scrollbar">
+        <button onclick="switchTab('dashboard')" id="tabBtn-dashboard" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-emerald-700 bg-emerald-50 border border-emerald-200 cursor-pointer">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </button>
+        <button onclick="switchTab('cashRegister')" id="tabBtn-cashRegister" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100 cursor-pointer">
+          <i class="fa-solid fa-money-bill-transfer"></i>
+          <span>Cash Register</span>
+        </button>
+        <button onclick="switchTab('orderRegister')" id="tabBtn-orderRegister" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100 cursor-pointer">
+          <i class="fa-solid fa-cart-flatbed"></i>
+          <span>Order Register</span>
+        </button>
+        <button onclick="switchTab('tracking')" id="tabBtn-tracking" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100 cursor-pointer">
+          <i class="fa-solid fa-truck-fast"></i>
+          <span>Live Shipment Tracking</span>
+        </button>
+        <button onclick="switchTab('partners')" id="tabBtn-partners" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100 cursor-pointer">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>Partner Settlements</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+      <section id="view-dashboard" class="tab-content space-y-6">
+        <div id="customerNotice" class="hidden bg-sky-50 border border-sky-200 text-sky-800 p-4 rounded-xl flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-circle-info text-sky-600 text-lg"></i>
+            <div>
+              <p class="font-semibold text-sm">Welcome, Bashar (Islam Traders Portal)!</p>
+              <p class="text-xs text-sky-600">You can monitor live batch dispatches, track orders, generate selling invoices, and view supplier advances in real time.</p>
+            </div>
+          </div>
+          <button onclick="switchTab('tracking')" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-medium cursor-pointer">Track My Deliveries</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Current Balance</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-wallet"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="text-2xl font-black text-slate-900" id="kpiCurrentBalance">৳ 513,783.00</span>
+            </div>
+            <div class="mt-2 text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+              <span>Live reconciled ledger</span>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Received (In)</span>
+              <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-arrow-down-left"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="text-2xl font-black text-slate-900" id="kpiTotalIn">৳ 4,356,920.00</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500">
+              Customer deposits & investments
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Disbursed (Out)</span>
+              <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-arrow-up-right"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="text-2xl font-black text-slate-900" id="kpiTotalOut">৳ 3,843,137.00</span>
+            </div>
+            <div class="mt-2 text-[11px] text-slate-500">
+              Suppliers, Lots & Capital withdrawals
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Order Revenue</span>
+              <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-chart-line"></i>
+              </div>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span class="text-2xl font-black text-slate-900" id="kpiOrderRevenue">৳ 1,788,155.70</span>
+            </div>
+            <div class="mt-2 text-[11px] text-purple-600 font-semibold flex items-center justify-between" id="kpiProfitSection">
+              <span>Net Profit: <strong id="kpiTotalProfit">৳ 32,870.30</strong></span>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-purple-500"></div>
+          </div>
+        </div>
+
+        <div id="adminProfitCards" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-gradient-to-r from-emerald-800 to-emerald-950 text-white p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="text-xs uppercase tracking-wider text-emerald-300 font-semibold">Total Net SCM Profit</div>
+              <div class="text-3xl font-black mt-1" id="dashTotalProfitBanner">৳ 32,870.30</div>
+              <p class="text-xs text-emerald-200/80 mt-1">After deducting transport & expenses</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-emerald-700/50 flex items-center justify-between text-xs text-emerald-200">
+              <span>Avg. Net Profit / Unit</span>
+              <span class="font-bold text-white" id="dashAvgProfitUnit">৳ 7.99 / Ton</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Bashar Bhai's Cut</span>
+                <span class="text-[11px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md font-bold">10% Margin</span>
+              </div>
+              <div class="text-2xl font-black text-slate-900 mt-1" id="dashBasharCut">৳ 3,287.03</div>
+              <p class="text-xs text-slate-500 mt-1">Accrued partner commission</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+              <span>Status</span>
+              <span class="font-semibold text-emerald-600"><i class="fa-solid fa-circle-check mr-1"></i>Reconciled</span>
+            </div>
+          </div>
+
+          <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Nahyan & Mithu Share</span>
+                <span class="text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold">90% Margin</span>
+              </div>
+              <div class="text-2xl font-black text-slate-900 mt-1" id="dashNahyanMithuCut">৳ 29,583.27</div>
+              <p class="text-xs text-slate-500 mt-1">Net executive operational profit</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+              <span>Equal Split (50/50)</span>
+              <span class="font-bold text-slate-800" id="dashHalfSplit">৳ 14,791.64 each</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm sm:text-base">Financial Flow & Ledger Distribution</h3>
+                <p class="text-xs text-slate-500">Credits vs Debits across all transaction parties (in ৳ BDT)</p>
+              </div>
+              <span class="text-xs bg-slate-100 px-2.5 py-1 rounded-lg text-slate-600 font-medium">Aug 2026</span>
+            </div>
+            <div class="h-64">
+              <canvas id="financialChart"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-slate-800 text-sm">Live Fulfillment Status</h3>
+                <button onclick="switchTab('tracking')" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">View All &rarr;</button>
+              </div>
+              <div class="space-y-3" id="quickShipmentList"></div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+              <button onclick="openNewOrderModal()" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition admin-only cursor-pointer">
+                <i class="fa-solid fa-plus"></i>
+                <span>Create New Order / Shipment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-cashRegister" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-book-bookmark text-emerald-600"></i>
+              <span>Cash Register Ledger</span>
+            </h2>
+            <p class="text-xs text-slate-500">Complete real-time record of all credits, debits, advance payments and clearances (৳ BDT).</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openNewTxnModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition admin-only cursor-pointer">
+              <i class="fa-solid fa-plus"></i>
+              <span>Post New Transaction</span>
+            </button>
+            <button onclick="exportCashRegisterCSV()" class="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition cursor-pointer">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Party Account Summary</h3>
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-y border-slate-200">
+                <tr>
+                  <th class="py-2.5 px-4">Entity / Category</th>
+                  <th class="py-2.5 px-4 text-right">Credited (In ৳)</th>
+                  <th class="py-2.5 px-4 text-right">Debited (Out ৳)</th>
+                  <th class="py-2.5 px-4 text-right">Closing Balance</th>
+                </tr>
+              </thead>
+              <tbody id="partySummaryTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
+            <div class="relative w-full sm:w-72">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="cashSearchInput" onkeyup="filterCashTable()" placeholder="Search description, TXN ID, category..." 
+                class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end text-xs">
+              <span class="text-slate-500">Filter Party:</span>
+              <select id="cashCategoryFilter" onchange="filterCashTable()" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="ALL">All Categories</option>
+                <option value="Customer">Customer</option>
+                <option value="Supplier / Production House">Supplier / Production House</option>
+                <option value="Mithu Bhai">Mithu Bhai</option>
+                <option value="Nahyan">Nahyan</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-emerald-800 text-white font-semibold">
+                <tr>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Transaction ID</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4">Description</th>
+                  <th class="py-3 px-4 text-right">Credit (৳)</th>
+                  <th class="py-3 px-4 text-right">Debit (৳)</th>
+                  <th class="py-3 px-4 text-right">Running Balance (৳)</th>
+                  <th class="py-3 px-4 text-center admin-only">Action</th>
+                </tr>
+              </thead>
+              <tbody id="cashTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-orderRegister" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-cart-shopping text-emerald-600"></i>
+              <span>Order & Fulfillment Register (SCM)</span>
+            </h2>
+            <p class="text-xs text-slate-500">Order commitments, item quantities, manufacturing prices, transport, supplier advances & net profits.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openNewOrderModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition admin-only cursor-pointer">
+              <i class="fa-solid fa-plus"></i>
+              <span>Place New Order</span>
+            </button>
+            <button onclick="exportOrdersCSV()" class="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition cursor-pointer">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i>
+              <span>Export Orders</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div class="bg-emerald-900 text-white p-3.5 rounded-xl">
+            <div class="text-[10px] uppercase font-bold text-emerald-300">Total Revenue</div>
+            <div class="text-base font-black mt-0.5" id="orderSummaryRevenue">৳ 1,788,155.70</div>
+          </div>
+          <div class="bg-white border border-slate-200 p-3.5 rounded-xl">
+            <div class="text-[10px] uppercase font-bold text-slate-500">Total Orders</div>
+            <div class="text-base font-black text-slate-800 mt-0.5" id="orderSummaryCount">4</div>
+          </div>
+          <div class="bg-white border border-slate-200 p-3.5 rounded-xl">
+            <div class="text-[10px] uppercase font-bold text-amber-600">Pending Fulfillments</div>
+            <div class="text-base font-black text-slate-800 mt-0.5" id="orderSummaryPending">3</div>
+          </div>
+          <div class="bg-white border border-slate-200 p-3.5 rounded-xl">
+            <div class="text-[10px] uppercase font-bold text-blue-600">Processing</div>
+            <div class="text-base font-black text-slate-800 mt-0.5" id="orderSummaryProcessing">1</div>
+          </div>
+          <div class="bg-white border border-slate-200 p-3.5 rounded-xl">
+            <div class="text-[10px] uppercase font-bold text-emerald-600">Shipped Fulfillments</div>
+            <div class="text-base font-black text-slate-800 mt-0.5" id="orderSummaryShipped">1</div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
+            <div class="relative w-full sm:w-72">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="orderSearchInput" onkeyup="filterOrderTable()" placeholder="Search Order ID, Customer, Item..." 
+                class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-slate-500">Status:</span>
+              <select id="orderStatusFilter" onchange="filterOrderTable()" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="ALL">All Statuses</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Processing">Processing</option>
+                <option value="Pending">Pending</option>
+                <option value="Delivered">Delivered</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead class="bg-emerald-800 text-white font-semibold">
+                <tr>
+                  <th class="py-3 px-4">Order ID</th>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Customer</th>
+                  <th class="py-3 px-4">Item</th>
+                  <th class="py-3 px-4 text-right">Quantity</th>
+                  <th class="py-3 px-4 text-right" id="thUnitPriceLabel">Unit Price (৳)</th>
+                  <th class="py-3 px-4 text-right">Total Amount (৳)</th>
+                  <th class="py-3 px-4 text-right">Advance Amount (৳)</th>
+                  <th class="py-3 px-4 text-right">Due Amount (৳)</th>
+                  <th class="py-3 px-4 text-center">Payment</th>
+                  <th class="py-3 px-4 text-center">Fulfillment</th>
+                  <th class="py-3 px-4 text-right">Selling Rate (৳)</th>
+                  <th class="py-3 px-4 text-right">Profit / Unit</th>
+                  <th class="py-3 px-4 text-right admin-only-col">Transportation (৳)</th>
+                  <th class="py-3 px-4 text-right admin-only-col">Other Cost (৳)</th>
+                  <th class="py-3 px-4 text-right admin-only-col">Total Profit (৳)</th>
+                  <th class="py-3 px-4 text-right admin-only-col">Bashar Cut (10%)</th>
+                  <th class="py-3 px-4 text-right admin-only-col">Nahyan & Mithu</th>
+                  <th class="py-3 px-4 text-center">Actions & Tracking</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-tracking" class="tab-content hidden space-y-6">
+        <div class="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="relative z-10 max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold mb-2 border border-emerald-500/30">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+              Live GPS & Dispatch Telemetry Canvas
+            </div>
+            <h2 class="text-2xl font-black">Supply Chain Shipment Tracker</h2>
+            <p class="text-xs text-slate-300 mt-1">Real-time status of pouch poly rolls, cylinder production, truck dispatches and recipient lot clearance.</p>
+          </div>
+          <div class="absolute right-6 top-1/2 -translate-y-1/2 opacity-10 text-9xl pointer-events-none hidden md:block">
+            <i class="fa-solid fa-truck-ramp-box"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3 w-full md:w-auto">
+            <label class="text-xs font-bold text-slate-700 whitespace-nowrap">Select Shipment:</label>
+            <select id="activeShipmentSelect" onchange="renderSelectedShipment()" class="w-full md:w-72 px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </select>
+          </div>
+          <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+            <button onclick="updateShipmentModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition admin-only cursor-pointer">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>Update Shipment Status</span>
+            </button>
+            <button onclick="openInvoiceModal(selectedShipmentId)" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-xl transition flex items-center gap-2 shadow-sm cursor-pointer">
+              <i class="fa-solid fa-file-pdf"></i>
+              <span>Generate Invoice PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="shipmentDetailContainer" class="space-y-6"></div>
+      </section>
+
+      <section id="view-partners" class="tab-content hidden space-y-6 admin-only-section">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-handshake-simple text-emerald-600"></i>
+              <span>Partner Profit Sharing & Settlement Ledger</span>
+            </h2>
+            <p class="text-xs text-slate-500">Breakdown of net profits after transport/expenses, partner shares (Bashar Bhai 10%, Nahyan & Mithu 90%), and capital withdrawals.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="bg-white p-6 rounded-2xl border border-sky-100 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">BB</div>
+              <span class="text-xs bg-sky-100 text-sky-800 font-bold px-2.5 py-1 rounded-full">Customer & Partner</span>
+            </div>
+            <h3 class="text-base font-bold text-slate-800 mt-3">Bashar Bhai</h3>
+            <p class="text-xs text-slate-500">Islam Traders Representative</p>
+            <div class="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
+              <div class="flex justify-between"><span class="text-slate-500">Commission Share:</span><span class="font-bold text-slate-800">10.00%</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Accrued Cut:</span><span class="font-black text-sky-600 text-sm" id="partnerBasharTotal">৳ 0.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Customer Deposits:</span><span class="font-bold text-slate-800">৳ 3,850,000.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Withdrawn for Suppliers:</span><span class="font-bold text-slate-800">৳ 1,100,000.00</span></div>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">MB</div>
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">Partner & Capital</span>
+            </div>
+            <h3 class="text-base font-bold text-slate-800 mt-3">Mithu Bhai</h3>
+            <p class="text-xs text-slate-500">Managing Partner & Operations</p>
+            <div class="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
+              <div class="flex justify-between"><span class="text-slate-500">Profit Pool Share:</span><span class="font-bold text-slate-800">45.00% (Half of 90%)</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Accrued Profit:</span><span class="font-black text-emerald-600 text-sm" id="partnerMithuTotal">৳ 0.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Capital Injected:</span><span class="font-bold text-slate-800">৳ 260,000.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Withdrawn:</span><span class="font-bold text-slate-800">৳ 860,000.00</span></div>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">NH</div>
+              <span class="text-xs bg-purple-100 text-purple-800 font-bold px-2.5 py-1 rounded-full">Admin & Partner</span>
+            </div>
+            <h3 class="text-base font-bold text-slate-800 mt-3">Nahyan</h3>
+            <p class="text-xs text-slate-500">Director & Financial Controller</p>
+            <div class="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
+              <div class="flex justify-between"><span class="text-slate-500">Profit Pool Share:</span><span class="font-bold text-slate-800">45.00% (Half of 90%)</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Accrued Profit:</span><span class="font-black text-purple-600 text-sm" id="partnerNahyanTotal">৳ 0.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Total Capital Injected:</span><span class="font-bold text-slate-800">৳ 246,920.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Capital Withdrawn:</span><span class="font-bold text-slate-800">৳ 246,920.00 (Net 0)</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">Lot-by-Lot Net Profit & Payout Schedule</h3>
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-y border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Order Ref</th>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4 text-right">Quantity (Tons)</th>
+                  <th class="py-3 px-4 text-right">Net Profit (৳)</th>
+                  <th class="py-3 px-4 text-right bg-sky-50 text-sky-900">Bashar Bhai (10%)</th>
+                  <th class="py-3 px-4 text-right bg-emerald-50 text-emerald-900">Nahyan & Mithu (90%)</th>
+                  <th class="py-3 px-4 text-right">Per Admin Share</th>
+                </tr>
+              </thead>
+              <tbody id="settlementTableBody" class="divide-y divide-slate-100 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 py-4 px-4 sm:px-8 text-center text-xs text-slate-500">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <p>&copy; 2026 SCM_PORTAL & Cash Management System. Real-Time Data Portal.</p>
+        <p class="text-[11px] text-slate-400">Authenticated Session: <span id="footerUserRole" class="font-semibold text-slate-600">Admin1</span></p>
+      </div>
+    </footer>
+  </div>
+
+  <div id="newTxnModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 transition-all">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-plus-circle text-emerald-600"></i>
+          <span>Post New Cash Transaction</span>
+        </h3>
+        <button onclick="closeNewTxnModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="newTxnForm" onsubmit="handleCreateTxn(event)" class="space-y-4 mt-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Date</label>
+            <input type="date" id="txnDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Transaction ID</label>
+            <input type="text" id="txnIdInput" required placeholder="TXN - 024" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Category / Party</label>
+          <select id="txnCategoryInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+            <option value="Customer">Customer</option>
+            <option value="Supplier / Production House">Supplier / Production House</option>
+            <option value="Mithu Bhai">Mithu Bhai</option>
+            <option value="Nahyan">Nahyan</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Description / Particulars</label>
+          <input type="text" id="txnDescInput" required placeholder="e.g., Advance payment / Cylinder payment" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-emerald-700 mb-1">Credit Amount (In BDT ৳)</label>
+            <input type="number" step="any" min="0" id="txnCreditInput" placeholder="0.00" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-rose-700 mb-1">Debit Amount (Out BDT ৳)</label>
+            <input type="number" step="any" min="0" id="txnDebitInput" placeholder="0.00" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeNewTxnModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition cursor-pointer">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-check"></i>
+            <span>Commit Transaction</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="newOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 transition-all max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-cart-plus text-emerald-600"></i>
+          <span>Create New SCM Order & Shipment</span>
+        </h3>
+        <button onclick="closeNewOrderModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="newOrderForm" onsubmit="handleCreateOrder(event)" class="space-y-4 mt-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Order ID</label>
+            <input type="text" id="orderIdInput" required placeholder="ORD - 005" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Order Date</label>
+            <input type="date" id="orderDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Customer</label>
+            <input type="text" id="orderCustomerInput" required value="Islam Traders" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Item</label>
+            <input type="text" id="orderItemInput" required value="1 Ton Pouch Poly" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Quantity (Ton)</label>
+            <input type="number" step="any" min="1" id="orderQtyInput" oninput="calculateOrderPreview()" required placeholder="1000" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Unit Cost (৳)</label>
+            <input type="number" step="any" min="1" id="orderUnitPriceInput" oninput="calculateOrderPreview()" required placeholder="432.00" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Selling Rate (৳)</label>
+            <input type="number" step="any" min="1" id="orderSellingRateInput" oninput="calculateOrderPreview()" required placeholder="440.00" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Advance Amount (৳)">Advance Amount (৳)</label>
+            <input type="number" step="any" min="0" id="orderAdvanceInput" oninput="calculateOrderPreview()" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-700">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Transport Cost (৳)">Transport Cost (৳)</label>
+            <input type="number" step="any" min="0" id="orderTransportInput" oninput="calculateOrderPreview()" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Other Cost (৳)">Other Cost (৳)</label>
+            <input type="number" step="any" min="0" id="orderOtherCostInput" oninput="calculateOrderPreview()" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+          <div class="flex justify-between font-medium">
+            <span class="text-slate-500">Total Order Value:</span>
+            <span class="font-bold text-slate-800" id="previewOrderTotal">৳ 0.00</span>
+          </div>
+          <div class="flex justify-between font-medium">
+            <span class="text-slate-500">Due Amount (Balance Payable):</span>
+            <span class="font-bold text-amber-700" id="previewOrderDue">৳ 0.00</span>
+          </div>
+          <div class="flex justify-between font-medium">
+            <span class="text-slate-500">Total Net Profit (After Transport/Expenses):</span>
+            <span class="font-bold text-emerald-600" id="previewOrderProfit">৳ 0.00</span>
+          </div>
+          <div class="flex justify-between font-medium text-[11px] text-slate-600 pt-1 border-t border-slate-200">
+            <span>Bashar Cut (10%): <strong id="previewBasharCut" class="text-sky-700">৳ 0.00</strong></span>
+            <span>Nahyan & Mithu (90%): <strong id="previewNahyanMithuCut" class="text-emerald-700">৳ 0.00</strong></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Payment Status</label>
+            <select id="orderPaymentStatusInput" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="Paid">Paid</option>
+              <option value="Pending" selected>Pending</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Fulfillment Status</label>
+            <select id="orderFulfillmentStatusInput" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="Pending">Pending</option>
+              <option value="Processing" selected>Processing</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeNewOrderModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition cursor-pointer">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-check"></i>
+            <span>Register Order</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="editOrderModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 transition-all max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-emerald-600"></i>
+          <span>Edit SCM Order & Financials</span>
+        </h3>
+        <button onclick="closeEditOrderModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="editOrderForm" onsubmit="handleUpdateOrder(event)" class="space-y-4 mt-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Order ID (Locked)</label>
+            <input type="text" id="editOrderIdInput" readonly class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Order Date</label>
+            <input type="date" id="editOrderDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Customer</label>
+            <input type="text" id="editOrderCustomerInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Item</label>
+            <input type="text" id="editOrderItemInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Quantity (Ton)</label>
+            <input type="number" step="any" min="1" id="editOrderQtyInput" oninput="calculateEditOrderPreview()" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Unit Cost (৳)</label>
+            <input type="number" step="any" min="1" id="editOrderUnitPriceInput" oninput="calculateEditOrderPreview()" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Selling Rate (৳)</label>
+            <input type="number" step="any" min="1" id="editOrderSellingRateInput" oninput="calculateEditOrderPreview()" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Advance Amount (৳)">Advance Amount (৳)</label>
+            <input type="number" step="any" min="0" id="editOrderAdvanceInput" oninput="calculateEditOrderPreview()" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-700">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Transport Cost (৳)">Transport Cost (৳)</label>
+            <input type="number" step="any" min="0" id="editOrderTransportInput" oninput="calculateEditOrderPreview()" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Other Cost (৳)">Other Cost (৳)</label>
+            <input type="number" step="any" min="0" id="editOrderOtherCostInput" oninput="calculateEditOrderPreview()" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+          <div class="flex justify-between font-medium">
+            <span class="text-slate-500">Total Order Value:</span>
+            <span class="font-bold text-slate-800" id="editPreviewOrderTotal">৳ 0.00</span>
+          </div>
+          <div class="flex justify-between font-medium">
+            <span class="text-slate-500">Due Amount (Balance Payable):</span>
+            <span class="font-bold text-amber-700" id="editPreviewOrderDue">৳ 0.00</span>
+          </div>
+          <div class="flex justify-between font-medium">
+            <span class="text-slate-500">Total Net Profit (After Transport/Expenses):</span>
+            <span class="font-bold text-emerald-600" id="editPreviewOrderProfit">৳ 0.00</span>
+          </div>
+          <div class="flex justify-between font-medium text-[11px] text-slate-600 pt-1 border-t border-slate-200">
+            <span>Bashar Cut (10%): <strong id="editPreviewBasharCut" class="text-sky-700">৳ 0.00</strong></span>
+            <span>Nahyan & Mithu (90%): <strong id="editPreviewNahyanMithuCut" class="text-emerald-700">৳ 0.00</strong></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Payment Status</label>
+            <select id="editOrderPaymentStatusInput" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Fulfillment Status</label>
+            <select id="editOrderFulfillmentStatusInput" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+              <option value="Pending">Pending</option>
+              <option value="Processing">Processing</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Delivered">Delivered</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeEditOrderModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition cursor-pointer">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-save"></i>
+            <span>Save Order Changes</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="updateShipmentModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full p-6 transition-all">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-truck-ramp-box text-emerald-600"></i>
+          <span>Update Shipment Progress</span>
+        </h3>
+        <button onclick="closeShipmentModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="updateShipmentForm" onsubmit="handleSaveShipmentUpdate(event)" class="space-y-4 mt-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Target Order</label>
+          <select id="updateShipmentOrderId" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold"></select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Current Milestone Status</label>
+          <select id="updateShipmentStage" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-semibold">
+            <option value="1">Stage 1: Cylinder & Raw Material Sourcing</option>
+            <option value="2">Stage 2: Poly Film Extrusion & Printing</option>
+            <option value="3">Stage 3: Quality Check & Dispatch Prep</option>
+            <option value="4">Stage 4: In-Transit / Highway Delivery</option>
+            <option value="5">Stage 5: Delivered & Gate Inward Cleared</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Current GPS / Hub Location</label>
+          <input type="text" id="updateShipmentLocation" required placeholder="e.g. Gazipur Highway Hub" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Driver & Truck Ref</label>
+          <input type="text" id="updateShipmentDriver" placeholder="e.g. Driver Rafiq" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Progress Notes / Milestone Update</label>
+          <textarea id="updateShipmentNotes" rows="2" placeholder="e.g. Consignment cleared factory gate..." class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeShipmentModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition cursor-pointer">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-save"></i>
+            <span>Broadcast Update</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="invoiceModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 hidden overflow-y-auto custom-scrollbar">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-3xl w-full my-8 p-6 sm:p-8 transition-all relative">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-100 no-print gap-3">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </span>
+          <div>
+            <h3 class="text-sm font-bold text-slate-800" id="invoiceModalTitle">Invoice Document</h3>
+            <p class="text-[11px] text-slate-400" id="invoiceModalSubtitle">Role-Calculated PDF Preview</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button onclick="downloadInvoicePDF()" id="downloadPdfBtn" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer">
+            <i class="fa-solid fa-download"></i>
+            <span>Download PDF</span>
+          </button>
+          <button onclick="printInvoicePDF()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+            <i class="fa-solid fa-print"></i>
+            <span>Print</span>
+          </button>
+          <button onclick="closeInvoiceModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="invoicePrintArea" class="mt-6 text-slate-800 text-xs font-sans bg-white"></div>
+    </div>
+  </div>
+
+  <div id="toastBox" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-base" id="toastIcon"></i>
+    <span id="toastMsg">Operation successful</span>
+  </div>
+
+  <script>
+    const GOOGLE_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbyDm091XX2z0UBPKJyY1HYBHTyZqmIx5lTfgBtldblIxA0dFxyi-3OYeDQ0yQYGH_BJ/exec';
+
+    const USERS = {
+      'admin1': { username: 'Admin1', password: 'admin123', role: 'admin', fullName: 'Admin 1 (Primary Admin)', title: 'System Controller & Operations' },
+      'admin2': { username: 'Admin2', password: 'admin123', role: 'admin', fullName: 'Admin 2 (Executive)', title: 'Logistics & Finance Partner' },
+      'bashar': { username: 'Bashar', password: 'bashar123', role: 'customer', fullName: 'Bashar Bhai (Islam Traders)', title: 'Customer & Commercial Partner' }
+    };
+
+    let currentUser = null;
+    let currentInvoiceOrderId = 'ORD - 001';
+
+    let cashTransactions = [];
+    let ordersData = [];
+
+    let financialChartInstance = null;
+    let selectedShipmentId = 'ORD - 001';
+    let canvasAnimId = null;
+
+    function formatMoney(amount) {
+      return '৳ ' + Number(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function getTodayInputDate() {
+      const d = new Date();
+      let month = '' + (d.getMonth() + 1),
+          day = '' + d.getDate(),
+          year = d.getFullYear();
+      if (month.length < 2) month = '0' + month;
+      if (day.length < 2) day = '0' + day;
+      return [year, month, day].join('-');
+    }
+
+    function formatDateForDisplay(dateInputVal) {
+      if (!dateInputVal) return '28-Aug-2026';
+      // If already formatted like 28-Aug-2026 or 21-Jul-2026
+      if (!dateInputVal.includes('-')) return dateInputVal;
+      const parts = dateInputVal.split('-');
+      if (parts.length === 3) {
+        // Check if YYYY-MM-DD
+        if (parts[0].length === 4) {
+          const year = parts[0];
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const mIdx = parseInt(parts[1], 10) - 1;
+          const day = parts[2];
+          return `${day}-${monthNames[mIdx] || 'Aug'}-${year}`;
+        }
+      }
+      return dateInputVal;
+    }
+
+    function parseInputDateToYMD(displayDateStr) {
+      if (!displayDateStr) return getTodayInputDate();
+      if (displayDateStr.includes('-') && displayDateStr.split('-')[0].length === 4) return displayDateStr;
+      
+      const parts = displayDateStr.split('-');
+      if (parts.length === 3) {
+        const day = parts[0];
+        const monthStr = parts[1].toLowerCase();
+        const year = parts[2];
+        const monthMap = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+        const mm = monthMap[monthStr.substring(0, 3)] || '08';
+        return `${year}-${mm}-${day.padStart(2, '0')}`;
+      }
+      return getTodayInputDate();
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toastBox');
+      const text = document.getElementById('toastMsg');
+      const icon = document.getElementById('toastIcon');
+      if (!toast || !text || !icon) return;
+
+      text.innerText = msg;
+      if (isError) {
+        icon.className = 'fa-solid fa-triangle-exclamation text-red-400 text-base';
+      } else {
+        icon.className = 'fa-solid fa-circle-check text-emerald-400 text-base';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3200);
+    }
+
+    function togglePasswordVisibility() {
+      const pwdInput = document.getElementById('passwordInput');
+      const eyeIcon = document.getElementById('passwordEyeIcon');
+      if (!pwdInput || !eyeIcon) return;
+      
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        eyeIcon.className = 'fa-regular fa-eye-slash text-emerald-600';
+      } else {
+        pwdInput.type = 'password';
+        eyeIcon.className = 'fa-regular fa-eye text-slate-400';
+      }
+    }
+
+    async function fetchLiveDataFromGoogleSheets(isManual = false) {
+      const spinner = document.getElementById('syncSpinner');
+      const syncDot = document.getElementById('syncDot');
+      const syncText = document.getElementById('syncText');
+
+      if (spinner && syncDot) {
+        spinner.classList.remove('hidden');
+        syncDot.classList.add('hidden');
+        if (syncText) syncText.innerText = 'Syncing...';
+      }
+
+      try {
+        const response = await fetch(`${GOOGLE_SCRIPT_API_URL}?action=getAllData`);
+        const result = await response.json();
+
+        if (result && result.status === 'success' && result.data) {
+          if (Array.isArray(result.data.cashTransactions) && result.data.cashTransactions.length > 0) {
+            cashTransactions = result.data.cashTransactions;
+          }
+
+          if (Array.isArray(result.data.orders) && result.data.orders.length > 0) {
+            let liveOrders = result.data.orders;
+            const liveShipments = result.data.shipments || [];
+
+            liveOrders.forEach(ord => {
+              const matchedShipment = liveShipments.find(s => String(s.orderRef).trim().toLowerCase() === String(ord.orderId).trim().toLowerCase());
+              if (matchedShipment) {
+                ord.tracking = {
+                  currentStage: matchedShipment.stage || (ord.fulfillmentStatus === 'Delivered' ? 5 : (ord.fulfillmentStatus === 'Shipped' ? 4 : 2)),
+                  location: matchedShipment.location || 'Gazipur Hub',
+                  driver: matchedShipment.driver || 'Assigned Driver',
+                  eta: matchedShipment.eta || 'Standard Schedule',
+                  history: [
+                    { time: matchedShipment.updatedAt || 'Recent', text: matchedShipment.latestNote || `Status: ${matchedShipment.stageDesc}` }
+                  ]
+                };
+              } else if (!ord.tracking) {
+                ord.tracking = {
+                  currentStage: ord.fulfillmentStatus === 'Delivered' ? 5 : (ord.fulfillmentStatus === 'Shipped' ? 4 : 2),
+                  location: 'Hub in Gazipur',
+                  driver: 'Assigned Driver',
+                  eta: '3 business days',
+                  history: [{ time: ord.date, text: `Order created for ${ord.qty} Tons` }]
+                };
+              }
+            });
+
+            // Sort ascending by Order ID
+            liveOrders.sort((a, b) => {
+              const numA = parseInt(String(a.orderId).replace(/[^0-9]/g, '')) || 0;
+              const numB = parseInt(String(b.orderId).replace(/[^0-9]/g, '')) || 0;
+              return numA - numB;
+            });
+
+            ordersData = liveOrders;
+          }
+
+          refreshAllData();
+          if (isManual) showToast('✅ Data refreshed in real time from Google Sheets!');
+        }
+      } catch (err) {
+        console.warn('Google Apps Script live fetch fallback to local cache:', err);
+        if (isManual) showToast('Local cache active. Live sync retry queued.');
+      } finally {
+        if (spinner && syncDot) {
+          spinner.classList.add('hidden');
+          syncDot.classList.remove('hidden');
+          if (syncText) syncText.innerText = 'Google Sheets Synced';
+        }
+      }
+    }
+
+    async function postActionToGoogleSheets(payload) {
+      try {
+        await fetch(GOOGLE_SCRIPT_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        setTimeout(() => fetchLiveDataFromGoogleSheets(false), 1500);
+      } catch (err) {
+        console.warn('Background sync queued:', err);
+      }
+    }
+
+    function handleLogin(e) {
+      if (e) e.preventDefault();
+      const rawUser = (document.getElementById('usernameInput')?.value || '').trim();
+      const rawPass = (document.getElementById('passwordInput')?.value || '').trim();
+      const alertBox = document.getElementById('loginAlert');
+
+      const lookupKey = rawUser.toLowerCase();
+      const matchedUser = USERS[lookupKey];
+
+      if (matchedUser && matchedUser.password === rawPass) {
+        currentUser = { ...matchedUser };
+        alertBox.classList.add('hidden');
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        setupUserInterface();
+        refreshAllData();
+        fetchLiveDataFromGoogleSheets(false);
+        showToast(`Welcome back, ${currentUser.fullName}!`);
+      } else {
+        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Invalid username or password. Please verify credentials.`;
+        alertBox.classList.remove('hidden');
+      }
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      if (canvasAnimId) cancelAnimationFrame(canvasAnimId);
+      document.getElementById('mainApp').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      showToast('You have been logged out.');
+    }
+
+    function setupUserInterface() {
+      if (!currentUser) return;
+      document.getElementById('userNameLabel').innerText = currentUser.username;
+      document.getElementById('userRoleLabel').innerText = currentUser.title;
+      document.getElementById('footerUserRole').innerText = currentUser.fullName;
+      document.getElementById('userAvatar').innerText = currentUser.username.substring(0, 2).toUpperCase();
+
+      const roleBadge = document.getElementById('roleBadge');
+      const customerNotice = document.getElementById('customerNotice');
+
+      if (currentUser.role === 'customer') {
+        roleBadge.innerText = 'Customer Portal';
+        roleBadge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200';
+        customerNotice.classList.remove('hidden');
+        document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.admin-only-section').forEach(el => el.classList.add('hidden'));
+        const unitPriceTh = document.getElementById('thUnitPriceLabel');
+        if (unitPriceTh) unitPriceTh.innerText = 'Selling Rate (৳)';
+      } else {
+        roleBadge.innerText = currentUser.username === 'Admin1' ? 'Primary Admin' : 'Admin';
+        roleBadge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
+        customerNotice.classList.add('hidden');
+        document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+        document.querySelectorAll('.admin-only-col').forEach(el => el.classList.remove('hidden'));
+        document.querySelectorAll('.admin-only-section').forEach(el => el.classList.remove('hidden'));
+        const unitPriceTh = document.getElementById('thUnitPriceLabel');
+        if (unitPriceTh) unitPriceTh.innerText = 'Unit Price (৳)';
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.className = 'tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100 cursor-pointer';
+      });
+
+      const targetView = document.getElementById(`view-${tabId}`);
+      const targetBtn = document.getElementById(`tabBtn-${tabId}`);
+
+      if (targetView) targetView.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.className = 'tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-emerald-700 bg-emerald-50 border border-emerald-200 cursor-pointer';
+      }
+
+      if (tabId === 'dashboard') {
+        setTimeout(renderFinancialChart, 50);
+      } else if (tabId === 'tracking') {
+        renderSelectedShipment();
+      }
+    }
+
+    function recalculateCashRegister() {
+      let runningBalance = 0;
+      let totalCredit = 0;
+      let totalDebit = 0;
+
+      const partySummary = {
+        'Customer': { in: 0, out: 0 },
+        'Supplier / Production House': { in: 0, out: 0 },
+        'Mithu Bhai': { in: 0, out: 0 },
+        'Nahyan': { in: 0, out: 0 }
+      };
+
+      cashTransactions.forEach(tx => {
+        const c = Number(tx.credit || 0);
+        const d = Number(tx.debit || 0);
+        totalCredit += c;
+        totalDebit += d;
+        runningBalance = runningBalance + c - d;
+        tx.runningBalance = runningBalance;
+
+        if (partySummary[tx.category]) {
+          partySummary[tx.category].in += c;
+          partySummary[tx.category].out += d;
+        }
+      });
+
+      document.getElementById('kpiCurrentBalance').innerText = formatMoney(runningBalance);
+      document.getElementById('kpiTotalIn').innerText = formatMoney(totalCredit);
+      document.getElementById('kpiTotalOut').innerText = formatMoney(totalDebit);
+
+      const partyBody = document.getElementById('partySummaryTableBody');
+      partyBody.innerHTML = '';
+      Object.keys(partySummary).forEach(party => {
+        const pIn = partySummary[party].in;
+        const pOut = partySummary[party].out;
+        const pClose = pIn - pOut;
+        const row = `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-2.5 px-4 font-semibold text-slate-800">${party}</td>
+            <td class="py-2.5 px-4 text-right text-emerald-700">${formatMoney(pIn)}</td>
+            <td class="py-2.5 px-4 text-right text-rose-700">${formatMoney(pOut)}</td>
+            <td class="py-2.5 px-4 text-right font-bold ${pClose < 0 ? 'text-rose-600' : 'text-slate-800'}">${formatMoney(pClose)}</td>
+          </tr>
+        `;
+        partyBody.insertAdjacentHTML('beforeend', row);
+      });
+
+      renderCashTable();
+    }
+
+    function renderCashTable() {
+      const tbody = document.getElementById('cashTableBody');
+      const search = (document.getElementById('cashSearchInput')?.value || '').toLowerCase();
+      const catFilter = document.getElementById('cashCategoryFilter')?.value || 'ALL';
+
+      tbody.innerHTML = '';
+
+      cashTransactions.forEach((tx, idx) => {
+        if (catFilter !== 'ALL' && tx.category !== catFilter) return;
+        const matchSearch = tx.desc.toLowerCase().includes(search) || 
+                            tx.txnId.toLowerCase().includes(search) || 
+                            tx.category.toLowerCase().includes(search) || 
+                            tx.date.toLowerCase().includes(search);
+        if (!matchSearch) return;
+
+        let catBadgeColor = 'bg-slate-100 text-slate-700';
+        if (tx.category === 'Customer') catBadgeColor = 'bg-blue-50 text-blue-700 border border-blue-200';
+        if (tx.category === 'Supplier / Production House') catBadgeColor = 'bg-amber-50 text-amber-700 border border-amber-200';
+        if (tx.category === 'Mithu Bhai') catBadgeColor = 'bg-purple-50 text-purple-700 border border-purple-200';
+        if (tx.category === 'Nahyan') catBadgeColor = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition';
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-slate-600 font-medium whitespace-nowrap">${tx.date}</td>
+          <td class="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">${tx.txnId}</td>
+          <td class="py-3 px-4 whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold ${catBadgeColor}">${tx.category}</span>
+          </td>
+          <td class="py-3 px-4 text-slate-700 max-w-xs truncate">${tx.desc}</td>
+          <td class="py-3 px-4 text-right font-bold text-emerald-700 whitespace-nowrap">${tx.credit > 0 ? formatMoney(tx.credit) : '-'}</td>
+          <td class="py-3 px-4 text-right font-bold text-rose-600 whitespace-nowrap">${tx.debit > 0 ? formatMoney(tx.debit) : '-'}</td>
+          <td class="py-3 px-4 text-right font-black text-slate-900 whitespace-nowrap">${formatMoney(tx.runningBalance)}</td>
+          <td class="py-3 px-4 text-center admin-only whitespace-nowrap">
+            <button onclick="deleteCashTxn(${idx})" class="text-slate-400 hover:text-rose-600 transition px-2 py-1 cursor-pointer" title="Delete Transaction">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (currentUser?.role === 'customer') {
+        document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+      }
+    }
+
+    function filterCashTable() {
+      renderCashTable();
+    }
+
+    function recalculateOrdersAndProfits() {
+      let totalRevenue = 0;
+      let totalNetProfit = 0;
+      let totalBasharCut = 0;
+      let totalNahyanMithuCut = 0;
+      let totalTons = 0;
+
+      let pendingFulfill = 0;
+      let processingFulfill = 0;
+      let shippedFulfill = 0;
+
+      // Strict ascending Order ID sorting
+      ordersData.sort((a, b) => {
+        const numA = parseInt(String(a.orderId).replace(/[^0-9]/g, '')) || 0;
+        const numB = parseInt(String(b.orderId).replace(/[^0-9]/g, '')) || 0;
+        return numA - numB;
+      });
+
+      const isCust = currentUser?.role === 'customer';
+
+      ordersData.forEach(ord => {
+        const effectivePrice = isCust ? (ord.sellingRate || ord.unitPrice) : ord.unitPrice;
+        const effectiveTotal = ord.qty * effectivePrice;
+        
+        totalRevenue += effectiveTotal;
+        totalNetProfit += ord.totalProfit;
+        totalBasharCut += ord.basharCut;
+        totalNahyanMithuCut += ord.nahyanMithuCut;
+        totalTons += Number(ord.qty || 0);
+
+        if (ord.fulfillmentStatus === 'Pending') pendingFulfill++;
+        if (ord.fulfillmentStatus === 'Processing') processingFulfill++;
+        if (ord.fulfillmentStatus === 'Shipped' || ord.fulfillmentStatus === 'Delivered') shippedFulfill++;
+      });
+
+      document.getElementById('kpiOrderRevenue').innerText = formatMoney(totalRevenue);
+      document.getElementById('kpiTotalProfit').innerText = formatMoney(totalNetProfit);
+      document.getElementById('dashTotalProfitBanner').innerText = formatMoney(totalNetProfit);
+      document.getElementById('dashBasharCut').innerText = formatMoney(totalBasharCut);
+      document.getElementById('dashNahyanMithuCut').innerText = formatMoney(totalNahyanMithuCut);
+      document.getElementById('dashHalfSplit').innerText = formatMoney(totalNahyanMithuCut / 2) + ' each';
+      
+      const avgUnit = totalTons > 0 ? (totalNetProfit / totalTons).toFixed(2) : '0.00';
+      const avgLabel = document.getElementById('dashAvgProfitUnit');
+      if (avgLabel) avgLabel.innerText = `৳ ${avgUnit} / Ton`;
+
+      document.getElementById('orderSummaryRevenue').innerText = formatMoney(totalRevenue);
+      document.getElementById('orderSummaryCount').innerText = ordersData.length;
+      document.getElementById('orderSummaryPending').innerText = pendingFulfill;
+      document.getElementById('orderSummaryProcessing').innerText = processingFulfill;
+      document.getElementById('orderSummaryShipped').innerText = shippedFulfill;
+
+      document.getElementById('partnerBasharTotal').innerText = formatMoney(totalBasharCut);
+      document.getElementById('partnerMithuTotal').innerText = formatMoney(totalNahyanMithuCut / 2);
+      document.getElementById('partnerNahyanTotal').innerText = formatMoney(totalNahyanMithuCut / 2);
+
+      renderOrdersTable();
+      renderSettlementTable();
+      populateShipmentSelect();
+      renderQuickShipmentList();
+    }
+
+    function renderOrdersTable() {
+      const tbody = document.getElementById('ordersTableBody');
+      const search = (document.getElementById('orderSearchInput')?.value || '').toLowerCase();
+      const statusFilter = document.getElementById('orderStatusFilter')?.value || 'ALL';
+
+      tbody.innerHTML = '';
+
+      if (ordersData.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="19" class="py-8 text-center text-slate-400">
+              <i class="fa-solid fa-cart-arrow-down text-3xl mb-2 block text-slate-300"></i>
+              No order records found. Click "Place New Order" to create one.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const isCust = currentUser?.role === 'customer';
+
+      ordersData.forEach((ord, index) => {
+        if (statusFilter !== 'ALL' && ord.fulfillmentStatus !== statusFilter) return;
+        const match = ord.orderId.toLowerCase().includes(search) || 
+                      ord.customer.toLowerCase().includes(search) || 
+                      ord.item.toLowerCase().includes(search);
+        if (!match) return;
+
+        const displayUnitPrice = isCust ? (ord.sellingRate || ord.unitPrice) : ord.unitPrice;
+        const displayTotalAmount = ord.qty * displayUnitPrice;
+        const displayDueAmount = displayTotalAmount - (ord.supplierAdvance || 0);
+
+        const payBadge = ord.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200';
+        
+        let fulfillBadge = 'bg-slate-100 text-slate-800 border-slate-200';
+        if (ord.fulfillmentStatus === 'Shipped') fulfillBadge = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        if (ord.fulfillmentStatus === 'Processing') fulfillBadge = 'bg-blue-100 text-blue-800 border-blue-200';
+        if (ord.fulfillmentStatus === 'Pending') fulfillBadge = 'bg-amber-100 text-amber-800 border-amber-200';
+        if (ord.fulfillmentStatus === 'Delivered') fulfillBadge = 'bg-purple-100 text-purple-800 border-purple-200';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-extrabold text-slate-900">${ord.orderId}</td>
+          <td class="py-3 px-4 text-slate-600">${ord.date}</td>
+          <td class="py-3 px-4 font-semibold text-slate-800">${ord.customer}</td>
+          <td class="py-3 px-4 text-slate-700">${ord.item}</td>
+          <td class="py-3 px-4 text-right font-medium">${Number(ord.qty).toLocaleString()}</td>
+          <td class="py-3 px-4 text-right text-slate-600">${formatMoney(displayUnitPrice)}</td>
+          <td class="py-3 px-4 text-right font-bold text-slate-900">${formatMoney(displayTotalAmount)}</td>
+          <td class="py-3 px-4 text-right font-bold text-emerald-700">${formatMoney(ord.supplierAdvance)}</td>
+          <td class="py-3 px-4 text-right font-bold text-amber-700">${formatMoney(displayDueAmount)}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border ${payBadge}">${ord.paymentStatus}</span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border ${fulfillBadge}">${ord.fulfillmentStatus}</span>
+          </td>
+          <td class="py-3 px-4 text-right text-slate-700">${formatMoney(ord.sellingRate)}</td>
+          <td class="py-3 px-4 text-right font-semibold text-emerald-700">${formatMoney(ord.profitPerUnit)}</td>
+          <td class="py-3 px-4 text-right text-rose-700 admin-only-col">${formatMoney(ord.transportCost)}</td>
+          <td class="py-3 px-4 text-right text-rose-700 admin-only-col">${formatMoney(ord.otherCost)}</td>
+          <td class="py-3 px-4 text-right font-bold text-emerald-800 bg-emerald-50/50 admin-only-col">${formatMoney(ord.totalProfit)}</td>
+          <td class="py-3 px-4 text-right font-bold text-sky-700 bg-sky-50/50 admin-only-col">${formatMoney(ord.basharCut)}</td>
+          <td class="py-3 px-4 text-right font-bold text-slate-800 admin-only-col">${formatMoney(ord.nahyanMithuCut)}</td>
+          <td class="py-3 px-4 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openInvoiceModal('${ord.orderId}')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer" title="Generate Invoice PDF">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>Invoice</span>
+              </button>
+              <button onclick="openEditOrderModal('${ord.orderId}')" class="px-2.5 py-1 bg-sky-50 hover:bg-sky-600 hover:text-white text-sky-700 border border-sky-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 admin-only cursor-pointer" title="Edit Order">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Edit</span>
+              </button>
+              <button onclick="trackSpecificOrder('${ord.orderId}')" class="px-2.5 py-1 bg-slate-900 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1 shadow-sm cursor-pointer" title="Track Live Cargo">
+                <i class="fa-solid fa-satellite-dish text-[10px]"></i>
+                <span>Track</span>
+              </button>
+              <button onclick="toggleOrderStatus(${index})" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] transition admin-only border border-slate-200 cursor-pointer" title="Toggle Payment Status">
+                <i class="fa-solid fa-arrows-rotate"></i>
+              </button>
+              <button onclick="deleteOrder(${index})" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 rounded-lg text-[11px] transition admin-only border border-rose-200 cursor-pointer" title="Delete Order">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (currentUser?.role === 'customer') {
+        document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
+      }
+    }
+
+    function filterOrderTable() {
+      renderOrdersTable();
+    }
+
+    function deleteOrder(index) {
+      if (currentUser?.role === 'customer') return;
+      const targetOrder = ordersData[index];
+      if (!targetOrder) return;
+
+      const deletedId = targetOrder.orderId;
+      ordersData.splice(index, 1);
+      refreshAllData();
+      showToast(`Order "${deletedId}" deleted.`);
+
+      postActionToGoogleSheets({
+        action: 'deleteOrder',
+        orderId: deletedId
+      });
+    }
+
+    function renderSettlementTable() {
+      const tbody = document.getElementById('settlementTableBody');
+      tbody.innerHTML = '';
+
+      if (ordersData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-400">No active settlements.</td></tr>`;
+        return;
+      }
+
+      ordersData.forEach(ord => {
+        const half = ord.nahyanMithuCut / 2;
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-bold text-slate-800">${ord.orderId} (${ord.customer})</td>
+          <td class="py-3 px-4 text-slate-600">${ord.date}</td>
+          <td class="py-3 px-4 text-right font-medium">${Number(ord.qty).toLocaleString()}</td>
+          <td class="py-3 px-4 text-right font-bold text-emerald-700">${formatMoney(ord.totalProfit)}</td>
+          <td class="py-3 px-4 text-right font-bold text-sky-800 bg-sky-50/40">${formatMoney(ord.basharCut)}</td>
+          <td class="py-3 px-4 text-right font-bold text-emerald-900 bg-emerald-50/40">${formatMoney(ord.nahyanMithuCut)}</td>
+          <td class="py-3 px-4 text-right font-semibold text-slate-700">${formatMoney(half)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderQuickShipmentList() {
+      const container = document.getElementById('quickShipmentList');
+      container.innerHTML = '';
+
+      if (ordersData.length === 0) {
+        container.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">No active shipments in register.</div>`;
+        return;
+      }
+
+      ordersData.slice(0, 3).forEach(ord => {
+        let statusColor = 'bg-emerald-500';
+        if (ord.fulfillmentStatus === 'Processing') statusColor = 'bg-blue-500';
+        if (ord.fulfillmentStatus === 'Pending') statusColor = 'bg-amber-500';
+
+        const item = `
+          <div onclick="trackSpecificOrder('${ord.orderId}')" class="p-3 bg-slate-50 hover:bg-emerald-50/50 rounded-xl border border-slate-200/80 transition cursor-pointer flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-2.5 h-2.5 rounded-full ${statusColor} pulse-dot"></div>
+              <div>
+                <div class="font-bold text-xs text-slate-800">${ord.orderId} - ${ord.customer}</div>
+                <div class="text-[11px] text-slate-500 truncate max-w-[180px]">${ord.tracking ? ord.tracking.location : 'Production Hub'}</div>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-white text-slate-700 border border-slate-200">${ord.fulfillmentStatus}</span>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', item);
+      });
+    }
+
+    function populateShipmentSelect() {
+      const select = document.getElementById('activeShipmentSelect');
+      const updateSelect = document.getElementById('updateShipmentOrderId');
+      if (!select) return;
+
+      select.innerHTML = '';
+      if (updateSelect) updateSelect.innerHTML = '';
+
+      if (ordersData.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.innerText = 'No Orders Available';
+        select.appendChild(opt);
+        if (updateSelect) updateSelect.appendChild(opt.cloneNode(true));
+        return;
+      }
+
+      ordersData.forEach(ord => {
+        const opt = document.createElement('option');
+        opt.value = ord.orderId;
+        opt.innerText = `${ord.orderId} - ${ord.customer} (${ord.fulfillmentStatus})`;
+        select.appendChild(opt);
+
+        if (updateSelect) {
+          updateSelect.appendChild(opt.cloneNode(true));
+        }
+      });
+
+      if (!ordersData.find(o => o.orderId === selectedShipmentId)) {
+        selectedShipmentId = ordersData[0].orderId;
+      }
+
+      select.value = selectedShipmentId;
+    }
+
+    function trackSpecificOrder(orderId) {
+      selectedShipmentId = orderId;
+      const select = document.getElementById('activeShipmentSelect');
+      if (select) select.value = orderId;
+      switchTab('tracking');
+    }
+
+    function initTrackingCanvas(stage) {
+      const canvas = document.getElementById('liveRouteCanvas');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const parent = canvas.parentElement;
+
+      const width = parent.clientWidth || 600;
+      const height = 300;
+      canvas.width = width;
+      canvas.height = height;
+
+      if (canvasAnimId) cancelAnimationFrame(canvasAnimId);
+
+      let animStep = 0;
+      const progressTarget = Math.max(0.1, (stage / 5));
+
+      const waypoints = [
+        { name: 'Gazipur Mill', x: width * 0.12, y: height * 0.72, code: 'HUB-GZP' },
+        { name: 'Tongi Toll Plaza', x: width * 0.28, y: height * 0.40, code: 'TL-01' },
+        { name: 'Kanchpur Junction', x: width * 0.46, y: height * 0.65, code: 'JNC-KPR' },
+        { name: 'Comilla Freight Station', x: width * 0.68, y: height * 0.35, code: 'FS-CML' },
+        { name: 'Islam Traders Depot (CTG)', x: width * 0.88, y: height * 0.60, code: 'DEPOT-CTG' }
+      ];
+
+      function getSplinePoint(t) {
+        const n = waypoints.length - 1;
+        const segment = Math.min(Math.floor(t * n), n - 1);
+        const localT = (t * n) - segment;
+        const p0 = waypoints[segment];
+        const p1 = waypoints[segment + 1];
+
+        const ease = localT * localT * (3 - 2 * localT);
+        return {
+          x: p0.x + (p1.x - p0.x) * ease,
+          y: p0.y + (p1.y - p0.y) * ease
+        };
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.strokeStyle = 'rgba(34, 197, 94, 0.08)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < width; x += 30) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < height; y += 30) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        for (let i = 0; i <= 100; i++) {
+          const pt = getSplinePoint(i / 100);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.strokeStyle = 'rgba(71, 85, 105, 0.5)';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        ctx.beginPath();
+        const activeSteps = Math.floor(progressTarget * 100);
+        for (let i = 0; i <= activeSteps; i++) {
+          const pt = getSplinePoint(i / 100);
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        }
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, '#10b981');
+        gradient.addColorStop(0.5, '#06b6d4');
+        gradient.addColorStop(1, '#3b82f6');
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 5;
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        waypoints.forEach((wp, idx) => {
+          const nodeProgress = idx / (waypoints.length - 1);
+          const isPassed = nodeProgress <= progressTarget;
+          const isTarget = Math.abs(nodeProgress - progressTarget) < 0.15;
+
+          if (isTarget) {
+            const radarRadius = 8 + (Math.sin(animStep * 0.08) * 4);
+            ctx.beginPath();
+            ctx.arc(wp.x, wp.y, radarRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = isPassed ? '#10b981' : '#334155';
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = isPassed ? '#e2e8f0' : '#64748b';
+          ctx.font = '600 10px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(wp.name, wp.x, wp.y + 18);
+
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = '500 8px monospace';
+          ctx.fillText(wp.code, wp.x, wp.y - 10);
+        });
+
+        const curTruckPt = getSplinePoint(progressTarget);
+        
+        const pulseR = 12 + (Math.sin(animStep * 0.1) * 6);
+        ctx.beginPath();
+        ctx.arc(curTruckPt.x, curTruckPt.y, pulseR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(curTruckPt.x, curTruckPt.y, 11, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#22c55e';
+        ctx.font = '900 10px "Font Awesome 6 Free", FontAwesome';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\uf0d1', curTruckPt.x, curTruckPt.y);
+
+        animStep++;
+        canvasAnimId = requestAnimationFrame(draw);
+      }
+
+      draw();
+    }
+
+    function renderSelectedShipment() {
+      const select = document.getElementById('activeShipmentSelect');
+      if (select && select.value) selectedShipmentId = select.value;
+
+      const container = document.getElementById('shipmentDetailContainer');
+
+      if (ordersData.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400">
+            <i class="fa-solid fa-truck-ramp-box text-4xl mb-3 block text-slate-300"></i>
+            <p class="text-sm font-semibold text-slate-600">No active shipments in the database.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const order = ordersData.find(o => o.orderId === selectedShipmentId) || ordersData[0];
+      if (!order) return;
+
+      const stage = (order.tracking && order.tracking.currentStage) ? order.tracking.currentStage : 1;
+
+      const stages = [
+        { num: 1, name: 'Cylinder & Raw Material', icon: 'fa-layer-group', desc: '6-Color cylinder prepared.' },
+        { num: 2, name: 'Extrusion & Printing', icon: 'fa-print', desc: '1 Ton pouch film extrusion and custom printing.' },
+        { num: 3, name: 'QC & Packaging', icon: 'fa-boxes-stacked', desc: 'Micron gauge inspection and pallet loading.' },
+        { num: 4, name: 'In-Transit Freight', icon: 'fa-truck-fast', desc: 'Carrier dispatch on highway en route.' },
+        { num: 5, name: 'Delivered & Closed', icon: 'fa-circle-check', desc: 'Consignment received at recipient warehouse.' }
+      ];
+
+      let stagesHTML = '';
+      stages.forEach((st) => {
+        const isDone = st.num < stage;
+        const isCurrent = st.num === stage;
+        
+        let circleClass = 'bg-slate-200 text-slate-500 border-slate-300';
+        let textClass = 'text-slate-400';
+
+        if (isDone) {
+          circleClass = 'bg-emerald-600 text-white border-emerald-600 shadow-md';
+          textClass = 'text-slate-800';
+        } else if (isCurrent) {
+          circleClass = 'bg-sky-600 text-white border-sky-600 ring-4 ring-sky-100 shadow-lg';
+          textClass = 'text-sky-900 font-bold';
+        }
+
+        stagesHTML += `
+          <div class="flex-1 min-w-[130px] relative text-center">
+            <div class="flex items-center justify-center">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${circleClass} z-10">
+                <i class="fa-solid ${st.icon}"></i>
+              </div>
+            </div>
+            <div class="mt-2 text-xs font-semibold ${textClass}">${st.name}</div>
+          </div>
+        `;
+      });
+
+      let historyListHTML = '';
+      const trackingHistory = (order.tracking && Array.isArray(order.tracking.history)) ? order.tracking.history : [];
+      trackingHistory.forEach(h => {
+        historyListHTML += `
+          <li class="relative pl-6 pb-4 border-l-2 border-emerald-300 last:border-transparent last:pb-0">
+            <span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-emerald-600 border-2 border-white"></span>
+            <div class="text-xs font-bold text-slate-800">${h.text}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">${h.time}</div>
+          </li>
+        `;
+      });
+
+      container.innerHTML = `
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Shipment ID / Ref</div>
+            <div class="text-base font-black text-slate-900 mt-0.5">${order.orderId}</div>
+            <div class="text-xs text-slate-500">${order.customer}</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Cargo Details</div>
+            <div class="text-xs font-bold text-slate-800 mt-1">${order.item}</div>
+            <div class="text-xs text-emerald-600 font-semibold">${Number(order.qty).toLocaleString()} Tons</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">Assigned Driver</div>
+            <div class="text-xs font-bold text-slate-800 mt-1">${(order.tracking && order.tracking.driver) || 'Pending'}</div>
+          </div>
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400">ETA / Location</div>
+            <div class="text-xs font-bold text-emerald-700 mt-1">${(order.tracking && order.tracking.eta) || 'On Schedule'}</div>
+            <div class="text-xs text-slate-500">${(order.tracking && order.tracking.location) || 'Gazipur Hub'}</div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-6">Milestone Progression Track</h3>
+          <div class="flex items-center justify-between overflow-x-auto pb-4 custom-scrollbar gap-2">
+            ${stagesHTML}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-dot"></span>
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Interactive Highway GPS Canvas Visualizer</h4>
+              </div>
+              <span class="text-xs text-slate-500 font-medium">GPS Signal: <strong class="text-emerald-600">Locked (99.8%)</strong></span>
+            </div>
+            <div class="p-4 bg-slate-950 text-white flex-1 flex flex-col justify-between relative overflow-hidden">
+              <div class="w-full h-[300px] relative">
+                <canvas id="liveRouteCanvas" class="w-full h-full block rounded-xl"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Dispatch Event Log</h4>
+              </div>
+              <ul class="space-y-1">${historyListHTML}</ul>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+              <button onclick="updateShipmentModal()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition admin-only cursor-pointer">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Add Checkpoint Log</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (currentUser?.role === 'customer') {
+        document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
+      }
+
+      setTimeout(() => initTrackingCanvas(stage), 50);
+    }
+
+    function renderFinancialChart() {
+      const ctx = document.getElementById('financialChart');
+      if (!ctx) return;
+
+      if (financialChartInstance) {
+        financialChartInstance.destroy();
+      }
+
+      let customerIn = 0, customerOut = 0;
+      let supplierIn = 0, supplierOut = 0;
+      let mithuIn = 0, mithuOut = 0;
+      let nahyanIn = 0, nahyanOut = 0;
+
+      cashTransactions.forEach(t => {
+        if (t.category === 'Customer') { customerIn += t.credit; customerOut += t.debit; }
+        if (t.category === 'Supplier / Production House') { supplierIn += t.credit; supplierOut += t.debit; }
+        if (t.category === 'Mithu Bhai') { mithuIn += t.credit; mithuOut += t.debit; }
+        if (t.category === 'Nahyan') { nahyanIn += t.credit; nahyanOut += t.debit; }
+      });
+
+      if (typeof Chart !== 'undefined') {
+        financialChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Customer', 'Supplier / Production', 'Mithu Bhai', 'Nahyan'],
+            datasets: [
+              { label: 'Credited (In ৳ BDT)', data: [customerIn, supplierIn, mithuIn, nahyanIn], backgroundColor: '#10b981', borderRadius: 6 },
+              { label: 'Debited (Out ৳ BDT)', data: [customerOut, supplierOut, mithuOut, nahyanOut], backgroundColor: '#f43f5e', borderRadius: 6 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11, family: 'Inter' } } }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: function(val) { return '৳' + (val / 1000) + 'k'; }, font: { size: 10 } },
+                grid: { color: '#f1f5f9' }
+              },
+              x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' } } }
+            }
+          }
+        });
+      }
+    }
+
+    function openNewTxnModal() {
+      document.getElementById('newTxnModal').classList.remove('hidden');
+      const nextNum = cashTransactions.length + 1;
+      document.getElementById('txnIdInput').value = 'TXN - ' + String(nextNum).padStart(3, '0');
+      document.getElementById('txnDateInput').value = getTodayInputDate();
+    }
+
+    function closeNewTxnModal() {
+      document.getElementById('newTxnModal').classList.add('hidden');
+      document.getElementById('newTxnForm').reset();
+    }
+
+    function handleCreateTxn(e) {
+      e.preventDefault();
+      const rawDate = document.getElementById('txnDateInput').value;
+      const date = formatDateForDisplay(rawDate);
+      const txnId = document.getElementById('txnIdInput').value;
+      const category = document.getElementById('txnCategoryInput').value;
+      const desc = document.getElementById('txnDescInput').value;
+      const credit = parseFloat(document.getElementById('txnCreditInput').value) || 0;
+      const debit = parseFloat(document.getElementById('txnDebitInput').value) || 0;
+
+      if (credit === 0 && debit === 0) {
+        showToast('Please specify either a Credit or Debit amount.', true);
+        return;
+      }
+
+      const newTx = { id: 'TXN-' + Date.now(), date, txnId, category, desc, credit, debit };
+
+      cashTransactions.push(newTx);
+      closeNewTxnModal();
+      refreshAllData();
+      showToast(`Transaction ${txnId} recorded and synced!`);
+
+      postActionToGoogleSheets({
+        action: 'addCashTxn',
+        transaction: newTx
+      });
+    }
+
+    function deleteCashTxn(index) {
+      if (currentUser?.role === 'customer') return;
+      const target = cashTransactions[index];
+      cashTransactions.splice(index, 1);
+      refreshAllData();
+      showToast(`Transaction ${target.txnId} removed.`);
+    }
+
+    function openNewOrderModal() {
+      document.getElementById('newOrderModal').classList.remove('hidden');
+      const nextNum = ordersData.length + 1;
+      document.getElementById('orderIdInput').value = 'ORD - ' + String(nextNum).padStart(3, '0');
+      document.getElementById('orderDateInput').value = getTodayInputDate();
+      calculateOrderPreview();
+    }
+
+    function closeNewOrderModal() {
+      document.getElementById('newOrderModal').classList.add('hidden');
+      document.getElementById('newOrderForm').reset();
+    }
+
+    function calculateOrderPreview() {
+      const qty = parseFloat(document.getElementById('orderQtyInput').value) || 0;
+      const unitPrice = parseFloat(document.getElementById('orderUnitPriceInput').value) || 0;
+      const sellingRate = parseFloat(document.getElementById('orderSellingRateInput').value) || 0;
+      const supplierAdvance = parseFloat(document.getElementById('orderAdvanceInput').value) || 0;
+      const transportCost = parseFloat(document.getElementById('orderTransportInput').value) || 0;
+      const otherCost = parseFloat(document.getElementById('orderOtherCostInput').value) || 0;
+
+      const isCust = currentUser?.role === 'customer';
+      const effectiveRate = isCust ? sellingRate : unitPrice;
+      const totalAmount = qty * effectiveRate;
+      const dueAmount = totalAmount - supplierAdvance;
+      const grossProfit = qty * (sellingRate - unitPrice);
+      const netProfit = grossProfit - transportCost - otherCost;
+      const basharCut = netProfit * 0.10;
+      const nahyanMithuCut = netProfit * 0.90;
+
+      document.getElementById('previewOrderTotal').innerText = formatMoney(totalAmount);
+      document.getElementById('previewOrderDue').innerText = formatMoney(dueAmount);
+      document.getElementById('previewOrderProfit').innerText = formatMoney(netProfit);
+      document.getElementById('previewBasharCut').innerText = formatMoney(basharCut);
+      document.getElementById('previewNahyanMithuCut').innerText = formatMoney(nahyanMithuCut);
+    }
+
+    function handleCreateOrder(e) {
+      e.preventDefault();
+      const orderId = document.getElementById('orderIdInput').value;
+      const rawDate = document.getElementById('orderDateInput').value;
+      const date = formatDateForDisplay(rawDate);
+      const customer = document.getElementById('orderCustomerInput').value;
+      const item = document.getElementById('orderItemInput').value;
+      const qty = parseFloat(document.getElementById('orderQtyInput').value) || 0;
+      const unitPrice = parseFloat(document.getElementById('orderUnitPriceInput').value) || 0;
+      const sellingRate = parseFloat(document.getElementById('orderSellingRateInput').value) || 0;
+      const supplierAdvance = parseFloat(document.getElementById('orderAdvanceInput').value) || 0;
+      const transportCost = parseFloat(document.getElementById('orderTransportInput').value) || 0;
+      const otherCost = parseFloat(document.getElementById('orderOtherCostInput').value) || 0;
+      const paymentStatus = document.getElementById('orderPaymentStatusInput').value;
+      const fulfillmentStatus = document.getElementById('orderFulfillmentStatusInput').value;
+
+      const isCust = currentUser?.role === 'customer';
+      const effectiveRate = isCust ? sellingRate : unitPrice;
+      const totalAmount = qty * effectiveRate;
+      const dueAmount = totalAmount - supplierAdvance;
+      const profitPerUnit = sellingRate - unitPrice;
+      const grossProfit = qty * profitPerUnit;
+      const totalProfit = grossProfit - transportCost - otherCost;
+      const basharCut = totalProfit * 0.10;
+      const nahyanMithuCut = totalProfit * 0.90;
+
+      const newOrder = {
+        orderId, date, customer, item, qty, unitPrice, totalAmount,
+        supplierAdvance, dueAmount, paymentStatus, fulfillmentStatus, sellingRate, profitPerUnit, transportCost, otherCost,
+        totalProfit, basharCut, nahyanMithuCut,
+        tracking: {
+          currentStage: fulfillmentStatus === 'Delivered' ? 5 : (fulfillmentStatus === 'Shipped' ? 4 : 2),
+          location: 'Production Hub, Gazipur',
+          driver: 'Assigned Driver Pending',
+          eta: 'Within 3 business days',
+          history: [{ time: `${date} 09:00 AM`, text: `Order created for ${Number(qty).toLocaleString()} Tons` }]
+        }
+      };
+
+      ordersData.push(newOrder);
+      ordersData.sort((a, b) => {
+        const numA = parseInt(String(a.orderId).replace(/[^0-9]/g, '')) || 0;
+        const numB = parseInt(String(b.orderId).replace(/[^0-9]/g, '')) || 0;
+        return numA - numB;
+      });
+
+      closeNewOrderModal();
+      refreshAllData();
+      showToast(`Order ${orderId} registered in Google Sheet!`);
+
+      postActionToGoogleSheets({
+        action: 'addOrder',
+        order: { orderId, date, customer, item, qty, unitPrice, supplierAdvance, paymentStatus, fulfillmentStatus, sellingRate, transportCost, otherCost }
+      });
+    }
+
+    function openEditOrderModal(orderId) {
+      const order = ordersData.find(o => o.orderId === orderId);
+      if (!order) return;
+
+      document.getElementById('editOrderIdInput').value = order.orderId;
+      document.getElementById('editOrderDateInput').value = parseInputDateToYMD(order.date);
+      document.getElementById('editOrderCustomerInput').value = order.customer;
+      document.getElementById('editOrderItemInput').value = order.item;
+      document.getElementById('editOrderQtyInput').value = order.qty;
+      document.getElementById('editOrderUnitPriceInput').value = order.unitPrice;
+      document.getElementById('editOrderSellingRateInput').value = order.sellingRate || 440;
+      document.getElementById('editOrderAdvanceInput').value = order.supplierAdvance || 0;
+      document.getElementById('editOrderTransportInput').value = order.transportCost || 0;
+      document.getElementById('editOrderOtherCostInput').value = order.otherCost || 0;
+      document.getElementById('editOrderPaymentStatusInput').value = order.paymentStatus;
+      document.getElementById('editOrderFulfillmentStatusInput').value = order.fulfillmentStatus;
+
+      calculateEditOrderPreview();
+      document.getElementById('editOrderModal').classList.remove('hidden');
+    }
+
+    function closeEditOrderModal() {
+      document.getElementById('editOrderModal').classList.add('hidden');
+    }
+
+    function calculateEditOrderPreview() {
+      const qty = parseFloat(document.getElementById('editOrderQtyInput').value) || 0;
+      const unitPrice = parseFloat(document.getElementById('editOrderUnitPriceInput').value) || 0;
+      const sellingRate = parseFloat(document.getElementById('editOrderSellingRateInput').value) || 0;
+      const supplierAdvance = parseFloat(document.getElementById('editOrderAdvanceInput').value) || 0;
+      const transportCost = parseFloat(document.getElementById('editOrderTransportInput').value) || 0;
+      const otherCost = parseFloat(document.getElementById('editOrderOtherCostInput').value) || 0;
+
+      const isCust = currentUser?.role === 'customer';
+      const effectiveRate = isCust ? sellingRate : unitPrice;
+      const totalAmount = qty * effectiveRate;
+      const dueAmount = totalAmount - supplierAdvance;
+      const grossProfit = qty * (sellingRate - unitPrice);
+      const netProfit = grossProfit - transportCost - otherCost;
+      const basharCut = netProfit * 0.10;
+      const nahyanMithuCut = netProfit * 0.90;
+
+      document.getElementById('editPreviewOrderTotal').innerText = formatMoney(totalAmount);
+      document.getElementById('editPreviewOrderDue').innerText = formatMoney(dueAmount);
+      document.getElementById('editPreviewOrderProfit').innerText = formatMoney(netProfit);
+      document.getElementById('editPreviewBasharCut').innerText = formatMoney(basharCut);
+      document.getElementById('editPreviewNahyanMithuCut').innerText = formatMoney(nahyanMithuCut);
+    }
+
+    function handleUpdateOrder(e) {
+      e.preventDefault();
+      const orderId = document.getElementById('editOrderIdInput').value;
+      const order = ordersData.find(o => o.orderId === orderId);
+      if (!order) return;
+
+      const rawDate = document.getElementById('editOrderDateInput').value;
+      order.date = formatDateForDisplay(rawDate);
+      order.customer = document.getElementById('editOrderCustomerInput').value;
+      order.item = document.getElementById('editOrderItemInput').value;
+      order.qty = parseFloat(document.getElementById('editOrderQtyInput').value) || 0;
+      order.unitPrice = parseFloat(document.getElementById('editOrderUnitPriceInput').value) || 0;
+      order.sellingRate = parseFloat(document.getElementById('editOrderSellingRateInput').value) || 0;
+      order.supplierAdvance = parseFloat(document.getElementById('editOrderAdvanceInput').value) || 0;
+      order.transportCost = parseFloat(document.getElementById('editOrderTransportInput').value) || 0;
+      order.otherCost = parseFloat(document.getElementById('editOrderOtherCostInput').value) || 0;
+      order.paymentStatus = document.getElementById('editOrderPaymentStatusInput').value;
+      order.fulfillmentStatus = document.getElementById('editOrderFulfillmentStatusInput').value;
+
+      const isCust = currentUser?.role === 'customer';
+      const effectiveRate = isCust ? order.sellingRate : order.unitPrice;
+      order.totalAmount = order.qty * effectiveRate;
+      order.dueAmount = order.totalAmount - order.supplierAdvance;
+      order.profitPerUnit = order.sellingRate - order.unitPrice;
+      const grossProfit = order.qty * order.profitPerUnit;
+      order.totalProfit = grossProfit - order.transportCost - order.otherCost;
+      order.basharCut = order.totalProfit * 0.10;
+      order.nahyanMithuCut = order.totalProfit * 0.90;
+
+      closeEditOrderModal();
+      refreshAllData();
+      showToast(`Order ${orderId} updated successfully!`);
+
+      postActionToGoogleSheets({
+        action: 'addOrder',
+        order: {
+          orderId: order.orderId,
+          date: order.date,
+          customer: order.customer,
+          item: order.item,
+          qty: order.qty,
+          unitPrice: order.unitPrice,
+          supplierAdvance: order.supplierAdvance,
+          paymentStatus: order.paymentStatus,
+          fulfillmentStatus: order.fulfillmentStatus,
+          sellingRate: order.sellingRate,
+          transportCost: order.transportCost,
+          otherCost: order.otherCost
+        }
+      });
+    }
+
+    function toggleOrderStatus(index) {
+      if (currentUser?.role === 'customer') return;
+      const ord = ordersData[index];
+      ord.paymentStatus = ord.paymentStatus === 'Paid' ? 'Pending' : 'Paid';
+      refreshAllData();
+      showToast(`Updated ${ord.orderId} payment status to ${ord.paymentStatus}`);
+    }
+
+    function updateShipmentModal() {
+      document.getElementById('updateShipmentModal').classList.remove('hidden');
+      document.getElementById('updateShipmentOrderId').value = selectedShipmentId;
+      const order = ordersData.find(o => o.orderId === selectedShipmentId);
+      if (order && order.tracking) {
+        document.getElementById('updateShipmentStage').value = String(order.tracking.currentStage || 1);
+        document.getElementById('updateShipmentLocation').value = order.tracking.location || '';
+        document.getElementById('updateShipmentDriver').value = order.tracking.driver || '';
+      }
+    }
+
+    function closeShipmentModal() {
+      document.getElementById('updateShipmentModal').classList.add('hidden');
+    }
+
+    function handleSaveShipmentUpdate(e) {
+      e.preventDefault();
+      const orderId = document.getElementById('updateShipmentOrderId').value;
+      const stageNum = parseInt(document.getElementById('updateShipmentStage').value);
+      const loc = document.getElementById('updateShipmentLocation').value;
+      const driver = document.getElementById('updateShipmentDriver').value;
+      const notes = document.getElementById('updateShipmentNotes').value;
+
+      const order = ordersData.find(o => o.orderId === orderId);
+      if (order) {
+        if (!order.tracking) order.tracking = { history: [] };
+        order.tracking.currentStage = stageNum;
+        order.tracking.location = loc;
+        if (driver) order.tracking.driver = driver;
+
+        if (stageNum === 5) order.fulfillmentStatus = 'Delivered';
+        else if (stageNum === 4) order.fulfillmentStatus = 'Shipped';
+        else order.fulfillmentStatus = 'Processing';
+
+        if (notes) {
+          const nowStr = '28-Aug-2026 ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          if (!Array.isArray(order.tracking.history)) order.tracking.history = [];
+          order.tracking.history.push({ time: nowStr, text: notes });
+        }
+
+        closeShipmentModal();
+        refreshAllData();
+        showToast(`Shipment progress for ${orderId} updated!`);
+
+        postActionToGoogleSheets({
+          action: 'updateTracking',
+          tracking: { orderId, stage: stageNum, location: loc, driver, notes }
+        });
+      }
+    }
+
+    function exportCashRegisterCSV() {
+      let csvContent = "data:text/csv;charset=utf-8,Date,Transaction ID,Category,Description,Credit,Debit,Running Balance\n";
+      cashTransactions.forEach(t => {
+        csvContent += `"${t.date}","${t.txnId}","${t.category}","${t.desc.replace(/"/g, '""')}","${t.credit}","${t.debit}","${t.runningBalance}"\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Cash_Register_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Cash register exported to CSV!');
+    }
+
+    function exportOrdersCSV() {
+      let csvContent = "data:text/csv;charset=utf-8,Order ID,Date,Customer,Item,Quantity,Unit Price,Total Amount,Advance Amount,Due Amount,Payment Status,Fulfillment Status,Selling Rate,Profit/Unit,Transportation Cost,Other Cost,Total Profit,Bashar Cut,Nahyan and Mithu\n";
+      ordersData.forEach(o => {
+        csvContent += `"${o.orderId}","${o.date}","${o.customer}","${o.item}","${o.qty}","${o.unitPrice}","${o.totalAmount}","${o.supplierAdvance}","${o.dueAmount}","${o.paymentStatus}","${o.fulfillmentStatus}","${o.sellingRate}","${o.profitPerUnit}","${o.transportCost}","${o.otherCost}","${o.totalProfit}","${o.basharCut}","${o.nahyanMithuCut}"\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Order_Register_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Orders exported to CSV!');
+    }
+
+    function openInvoiceModal(orderId) {
+      currentInvoiceOrderId = orderId;
+      const order = ordersData.find(o => o.orderId === orderId) || ordersData[0];
+      if (!order) {
+        showToast('Order not found for invoice generation.', true);
+        return;
+      }
+
+      const isCustomer = currentUser?.role === 'customer';
+      const printContainer = document.getElementById('invoicePrintArea');
+      const modalTitle = document.getElementById('invoiceModalTitle');
+      const modalSubtitle = document.getElementById('invoiceModalSubtitle');
+
+      const qty = Number(order.qty || 0);
+      const sellingRate = Number(order.sellingRate || order.unitPrice || 0);
+      const supplierAdvance = Number(order.supplierAdvance || 0);
+      const totalAmount = qty * sellingRate;
+      const dueAmount = totalAmount - supplierAdvance;
+
+      const adminCostTotal = qty * Number(order.unitPrice || 0);
+      const invoiceNumber = `INV-${order.orderId.replace(/\s+/g, '')}`;
+
+      if (isCustomer) {
+        modalTitle.innerText = `Commercial Sales Invoice — ${order.orderId}`;
+        modalSubtitle.innerText = `Calculated on Selling Rate (৳ ${sellingRate.toFixed(2)}/Ton)`;
+
+        printContainer.innerHTML = `
+          <div class="border border-slate-200 rounded-2xl p-6 sm:p-8 bg-white shadow-sm space-y-6">
+            <div class="flex justify-between items-center pb-6 border-b border-slate-200">
+              <h2 class="text-xl font-black text-slate-900">SCM SUPPLY CHAIN PORTAL</h2>
+              <div class="text-right">
+                <div class="text-xs font-bold text-slate-800">Invoice: <span class="text-emerald-700">${invoiceNumber}</span></div>
+                <div class="text-[11px] text-slate-500">Date: <strong>${order.date}</strong></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl">
+              <div>
+                <h4 class="text-[10px] font-bold text-slate-400 uppercase">Billed To:</h4>
+                <div class="text-sm font-bold text-slate-900">${order.customer}</div>
+              </div>
+              <div class="text-right">
+                <h4 class="text-[10px] font-bold text-slate-400 uppercase">Order Ref:</h4>
+                <div class="text-xs font-bold text-slate-800">${order.orderId}</div>
+              </div>
+            </div>
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900 text-white">
+                <tr><th class="py-3 px-4">Item</th><th class="py-3 px-4 text-right">Qty</th><th class="py-3 px-4 text-right">Rate</th><th class="py-3 px-4 text-right">Total (৳)</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <tr><td class="py-4 px-4 font-bold">${order.item}</td><td class="py-4 px-4 text-right">${qty.toLocaleString()} Tons</td><td class="py-4 px-4 text-right">${formatMoney(sellingRate)}</td><td class="py-4 px-4 text-right font-black">${formatMoney(totalAmount)}</td></tr>
+              </tbody>
+            </table>
+            <div class="flex justify-end pt-4 border-t">
+              <div class="bg-emerald-50 border p-4 rounded-xl text-right space-y-1">
+                <div class="text-xs text-emerald-800">Total Bill: <strong>${formatMoney(totalAmount)}</strong></div>
+                <div class="text-xs text-emerald-800">Supplier Advance Paid: <strong>${formatMoney(supplierAdvance)}</strong></div>
+                <div class="text-sm font-black text-emerald-900 pt-1 border-t border-emerald-200">Net Due Payable: ${formatMoney(dueAmount)}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        modalTitle.innerText = `Admin Operational Invoice & Cost Sheet — ${order.orderId}`;
+        modalSubtitle.innerText = `Calculated with Transport, Expenses & Supplier Advance`;
+
+        printContainer.innerHTML = `
+          <div class="border border-slate-200 rounded-2xl p-6 sm:p-8 bg-white shadow-sm space-y-6">
+            <div class="flex justify-between items-center pb-6 border-b border-slate-200">
+              <h2 class="text-xl font-black text-slate-900">INTERNAL NET PROFIT AUDIT & ADVANCE SLIP</h2>
+              <div class="text-right">
+                <div class="text-xs font-bold text-slate-800">Order Ref: <span class="text-emerald-700">${order.orderId}</span></div>
+                <div class="text-[11px] text-slate-500">Date: <strong>${order.date}</strong></div>
+              </div>
+            </div>
+            <table class="w-full text-left text-xs">
+              <thead class="bg-emerald-900 text-white">
+                <tr><th class="py-3 px-4">Item</th><th class="py-3 px-4 text-right">Qty</th><th class="py-3 px-4 text-right">Unit Cost</th><th class="py-3 px-4 text-right">Total Cost (৳)</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <tr><td class="py-4 px-4 font-bold">${order.item}</td><td class="py-4 px-4 text-right">${qty.toLocaleString()} Tons</td><td class="py-4 px-4 text-right">${formatMoney(order.unitPrice)}</td><td class="py-4 px-4 text-right font-black text-rose-700">${formatMoney(adminCostTotal)}</td></tr>
+              </tbody>
+            </table>
+            <div class="p-4 bg-slate-50 rounded-xl space-y-2 text-xs border">
+              <div class="flex justify-between"><span>Transportation Cost:</span><span class="font-bold text-rose-700">${formatMoney(order.transportCost)}</span></div>
+              <div class="flex justify-between"><span>Other Expenses:</span><span class="font-bold text-rose-700">${formatMoney(order.otherCost)}</span></div>
+              <div class="flex justify-between pt-2 border-t border-slate-200"><span>Supplier Advance Paid:</span><span class="font-bold text-emerald-700">${formatMoney(supplierAdvance)}</span></div>
+              <div class="flex justify-between"><span>Due Balance Payable:</span><span class="font-bold text-amber-700">${formatMoney(dueAmount)}</span></div>
+            </div>
+            <div class="p-4 bg-slate-900 text-white rounded-xl space-y-2">
+              <div class="text-xs font-bold text-emerald-400">Net Profit & Payout Breakdown</div>
+              <div class="grid grid-cols-3 text-xs gap-2">
+                <div>Total Net Profit: <strong class="text-white">${formatMoney(order.totalProfit)}</strong></div>
+                <div>Bashar Cut (10%): <strong class="text-sky-300">${formatMoney(order.basharCut)}</strong></div>
+                <div>Nahyan & Mithu (90%): <strong class="text-purple-300">${formatMoney(order.nahyanMithuCut)}</strong></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById('invoiceModal').classList.remove('hidden');
+    }
+
+    function closeInvoiceModal() {
+      document.getElementById('invoiceModal').classList.add('hidden');
+    }
+
+    async function downloadInvoicePDF() {
+      const element = document.getElementById('invoicePrintArea');
+      if (!element) return;
+
+      const downloadBtn = document.getElementById('downloadPdfBtn');
+      if (downloadBtn) downloadBtn.disabled = true;
+
+      showToast('Generating PDF file for download...');
+
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: `Invoice_${currentInvoiceOrderId}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      try {
+        if (typeof html2pdf !== 'undefined') {
+          await html2pdf().set(opt).from(element).save();
+          showToast('✅ PDF downloaded successfully!');
+        } else {
+          window.print();
+        }
+      } catch (err) {
+        window.print();
+      } finally {
+        if (downloadBtn) downloadBtn.disabled = false;
+      }
+    }
+
+    function printInvoicePDF() {
+      window.print();
+    }
+
+    function refreshAllData() {
+      recalculateCashRegister();
+      recalculateOrdersAndProfits();
+      renderFinancialChart();
+    }
+
+    window.addEventListener('resize', () => {
+      const order = ordersData.find(o => o.orderId === selectedShipmentId);
+      if (order && order.tracking) initTrackingCanvas(order.tracking.currentStage || 1);
+    });
+
+    window.onload = function() {
+      recalculateCashRegister();
+      recalculateOrdersAndProfits();
+    };
+  </script>
+</body>
+</html>
