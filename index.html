@@ -102,7 +102,7 @@
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
               <i class="fa-regular fa-user"></i>
             </span>
-            <input type="text" id="usernameInput" required placeholder="Enter username" autocomplete="off"
+            <input type="text" id="usernameInput" required placeholder="Enter username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
               class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
           </div>
         </div>
@@ -113,7 +113,7 @@
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
               <i class="fa-solid fa-lock"></i>
             </span>
-            <input type="password" id="passwordInput" required placeholder="Enter password" autocomplete="new-password"
+            <input type="password" id="passwordInput" required placeholder="Enter password" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"
               class="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
             <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer" title="Toggle password visibility">
               <i class="fa-regular fa-eye" id="passwordEyeIcon"></i>
@@ -665,7 +665,7 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Date</label>
-            <input type="date" id="txnDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+            <input type="date" id="txnDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
           </div>
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Transaction ID</label>
@@ -730,7 +730,7 @@
           </div>
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Order Date</label>
-            <input type="date" id="orderDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+            <input type="date" id="orderDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
           </div>
         </div>
 
@@ -762,15 +762,15 @@
 
         <div class="grid grid-cols-3 gap-3">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Advance Amount (৳)">Advance Amount (৳)</label>
+            <label class="block font-semibold text-slate-700 mb-1">Advance Amount (৳)</label>
             <input type="number" step="any" min="0" id="orderAdvanceInput" oninput="calculateOrderPreview()" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-700">
           </div>
           <div>
-            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Transport Cost (৳)">Transport Cost (৳)</label>
+            <label class="block font-semibold text-slate-700 mb-1">Transport Cost (৳)</label>
             <input type="number" step="any" min="0" id="orderTransportInput" oninput="calculateOrderPreview()" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
-            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Other Cost (৳)">Other Cost (৳)</label>
+            <label class="block font-semibold text-slate-700 mb-1">Other Cost (৳)</label>
             <input type="number" step="any" min="0" id="orderOtherCostInput" oninput="calculateOrderPreview()" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
         </div>
@@ -844,7 +844,7 @@
           </div>
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Order Date</label>
-            <input type="date" id="editOrderDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+            <input type="date" id="editOrderDateInput" required class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
           </div>
         </div>
 
@@ -876,15 +876,15 @@
 
         <div class="grid grid-cols-3 gap-3">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Advance Amount (৳)">Advance Amount (৳)</label>
+            <label class="block font-semibold text-slate-700 mb-1">Advance Amount (৳)</label>
             <input type="number" step="any" min="0" id="editOrderAdvanceInput" oninput="calculateEditOrderPreview()" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-700">
           </div>
           <div>
-            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Transport Cost (৳)">Transport Cost (৳)</label>
+            <label class="block font-semibold text-slate-700 mb-1">Transport Cost (৳)</label>
             <input type="number" step="any" min="0" id="editOrderTransportInput" oninput="calculateEditOrderPreview()" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <div>
-            <label class="block font-semibold text-slate-700 mb-1 truncate" title="Other Cost (৳)">Other Cost (৳)</label>
+            <label class="block font-semibold text-slate-700 mb-1">Other Cost (৳)</label>
             <input type="number" step="any" min="0" id="editOrderOtherCostInput" oninput="calculateEditOrderPreview()" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
         </div>
@@ -1064,11 +1064,9 @@
 
     function formatDateForDisplay(dateInputVal) {
       if (!dateInputVal) return '28-Aug-2026';
-      // If already formatted like 28-Aug-2026 or 21-Jul-2026
       if (!dateInputVal.includes('-')) return dateInputVal;
       const parts = dateInputVal.split('-');
       if (parts.length === 3) {
-        // Check if YYYY-MM-DD
         if (parts[0].length === 4) {
           const year = parts[0];
           const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1176,7 +1174,6 @@
               }
             });
 
-            // Sort ascending by Order ID
             liveOrders.sort((a, b) => {
               const numA = parseInt(String(a.orderId).replace(/[^0-9]/g, '')) || 0;
               const numB = parseInt(String(b.orderId).replace(/[^0-9]/g, '')) || 0;
@@ -1411,7 +1408,6 @@
       let processingFulfill = 0;
       let shippedFulfill = 0;
 
-      // Strict ascending Order ID sorting
       ordersData.sort((a, b) => {
         const numA = parseInt(String(a.orderId).replace(/[^0-9]/g, '')) || 0;
         const numB = parseInt(String(b.orderId).replace(/[^0-9]/g, '')) || 0;
@@ -1421,8 +1417,8 @@
       const isCust = currentUser?.role === 'customer';
 
       ordersData.forEach(ord => {
-        const effectivePrice = isCust ? (ord.sellingRate || ord.unitPrice) : ord.unitPrice;
-        const effectiveTotal = ord.qty * effectivePrice;
+        const effectiveRate = isCust ? (ord.sellingRate || ord.unitPrice) : (ord.sellingRate || ord.unitPrice);
+        const effectiveTotal = ord.qty * effectiveRate;
         
         totalRevenue += effectiveTotal;
         totalNetProfit += ord.totalProfit;
@@ -2083,7 +2079,7 @@
       const otherCost = parseFloat(document.getElementById('orderOtherCostInput').value) || 0;
 
       const isCust = currentUser?.role === 'customer';
-      const effectiveRate = isCust ? sellingRate : unitPrice;
+      const effectiveRate = isCust ? sellingRate : sellingRate;
       const totalAmount = qty * effectiveRate;
       const dueAmount = totalAmount - supplierAdvance;
       const grossProfit = qty * (sellingRate - unitPrice);
@@ -2115,7 +2111,7 @@
       const fulfillmentStatus = document.getElementById('orderFulfillmentStatusInput').value;
 
       const isCust = currentUser?.role === 'customer';
-      const effectiveRate = isCust ? sellingRate : unitPrice;
+      const effectiveRate = isCust ? sellingRate : sellingRate;
       const totalAmount = qty * effectiveRate;
       const dueAmount = totalAmount - supplierAdvance;
       const profitPerUnit = sellingRate - unitPrice;
@@ -2188,7 +2184,7 @@
       const otherCost = parseFloat(document.getElementById('editOrderOtherCostInput').value) || 0;
 
       const isCust = currentUser?.role === 'customer';
-      const effectiveRate = isCust ? sellingRate : unitPrice;
+      const effectiveRate = isCust ? sellingRate : sellingRate;
       const totalAmount = qty * effectiveRate;
       const dueAmount = totalAmount - supplierAdvance;
       const grossProfit = qty * (sellingRate - unitPrice);
@@ -2223,7 +2219,7 @@
       order.fulfillmentStatus = document.getElementById('editOrderFulfillmentStatusInput').value;
 
       const isCust = currentUser?.role === 'customer';
-      const effectiveRate = isCust ? order.sellingRate : order.unitPrice;
+      const effectiveRate = isCust ? order.sellingRate : order.sellingRate;
       order.totalAmount = order.qty * effectiveRate;
       order.dueAmount = order.totalAmount - order.supplierAdvance;
       order.profitPerUnit = order.sellingRate - order.unitPrice;
@@ -2362,6 +2358,8 @@
       const supplierAdvance = Number(order.supplierAdvance || 0);
       const totalAmount = qty * sellingRate;
       const dueAmount = totalAmount - supplierAdvance;
+      const isPaid = order.paymentStatus === 'Paid';
+      const netPayable = isPaid ? 0 : dueAmount;
 
       const adminCostTotal = qty * Number(order.unitPrice || 0);
       const invoiceNumber = `INV-${order.orderId.replace(/\s+/g, '')}`;
@@ -2401,7 +2399,8 @@
               <div class="bg-emerald-50 border p-4 rounded-xl text-right space-y-1">
                 <div class="text-xs text-emerald-800">Total Bill: <strong>${formatMoney(totalAmount)}</strong></div>
                 <div class="text-xs text-emerald-800">Supplier Advance Paid: <strong>${formatMoney(supplierAdvance)}</strong></div>
-                <div class="text-sm font-black text-emerald-900 pt-1 border-t border-emerald-200">Net Due Payable: ${formatMoney(dueAmount)}</div>
+                <div class="text-xs text-slate-600">Payment Status: <strong class="${isPaid ? 'text-emerald-700' : 'text-amber-700'}">${order.paymentStatus}</strong></div>
+                <div class="text-sm font-black text-emerald-900 pt-1 border-t border-emerald-200">Net Due Payable: ${formatMoney(netPayable)}</div>
               </div>
             </div>
           </div>
@@ -2431,7 +2430,8 @@
               <div class="flex justify-between"><span>Transportation Cost:</span><span class="font-bold text-rose-700">${formatMoney(order.transportCost)}</span></div>
               <div class="flex justify-between"><span>Other Expenses:</span><span class="font-bold text-rose-700">${formatMoney(order.otherCost)}</span></div>
               <div class="flex justify-between pt-2 border-t border-slate-200"><span>Supplier Advance Paid:</span><span class="font-bold text-emerald-700">${formatMoney(supplierAdvance)}</span></div>
-              <div class="flex justify-between"><span>Due Balance Payable:</span><span class="font-bold text-amber-700">${formatMoney(dueAmount)}</span></div>
+              <div class="flex justify-between"><span>Payment Status:</span><span class="font-bold ${isPaid ? 'text-emerald-700' : 'text-amber-700'}">${order.paymentStatus}</span></div>
+              <div class="flex justify-between"><span>Due Balance Payable:</span><span class="font-bold text-amber-700">${formatMoney(netPayable)}</span></div>
             </div>
             <div class="p-4 bg-slate-900 text-white rounded-xl space-y-2">
               <div class="text-xs font-bold text-emerald-400">Net Profit & Payout Breakdown</div>
